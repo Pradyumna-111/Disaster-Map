@@ -5,9 +5,7 @@ A Next.js application that visualizes disaster information using Google Maps API
 ## Features
 
 - Interactive map powered by Google Maps API
-- Real-time disaster tracking and visualization
 - Location-based disaster alerts
-- Responsive design for mobile and desktop
 - Fast performance with Next.js
 
 ## Prerequisites
