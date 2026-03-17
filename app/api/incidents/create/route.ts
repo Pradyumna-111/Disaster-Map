@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
-import Resource from '@/models/Resource';
+import Incident from '@/models/Incident';
 import connectToDatabase from '@/lib/mongodb';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const data = await request.json();
-        const { type, name, address, description, lat, lng } = data;
+        const { type, description, severity, lat, lng } = data;
 
         const token = request.cookies.get('auth_token')?.value;
         if (!token) {
@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized. Invalid token.' }, { status: 401 });
         }
 
-        if (name == null || address == null || type == null || lat == null || lng == null) {
-            return NextResponse.json({ error: 'Missing required location or resource data.' }, { status: 400 });
+        if (type == null || description == null || lat == null || lng == null) {
+            return NextResponse.json({ error: 'Missing required incident data.' }, { status: 400 });
         }
 
         const numericLat = Number(lat);
@@ -38,27 +38,23 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid latitude or longitude values.' }, { status: 400 });
         }
 
-        const newResource = new Resource({
+        const newIncident = new Incident({
             type,
-            name,
-            address,
             description,
+            severity: severity || 'medium',
             location: { type: 'Point', coordinates: [numericLng, numericLat] },
-            submittedBy: new mongoose.Types.ObjectId(userId),
-            status: 'pending'
+            reportedBy: new mongoose.Types.ObjectId(userId),
+            status: 'active'
         });
 
-        await newResource.save();
+        await newIncident.save();
 
         return NextResponse.json(
-            { message: 'Resource successfully submitted and is pending review!', resourceId: newResource._id },
+            { message: 'Incident successfully reported!', incidentId: newIncident._id },
             { status: 201 }
         );
     } catch (error) {
-        console.error('Resource creation failed:', error);
-        if (error instanceof mongoose.Error.ValidationError) {
-            return NextResponse.json({ error: error.message }, { status: 400 });
-        }
-        return NextResponse.json({ error: 'Internal server error during resource submission.' }, { status: 500 });
+        console.error('Incident report failed:', error);
+        return NextResponse.json({ error: 'Internal server error during incident submission.' }, { status: 500 });
     }
 }
